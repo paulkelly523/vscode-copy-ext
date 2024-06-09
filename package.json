@@ -12,6 +12,10 @@
         "onCommand:extension.selectFilesToCopy"
     ],
     "main": "./extension.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/paulkelly523/vscode-copy-ext.git"
+    },
     "contributes": {
         "commands": [
             {
