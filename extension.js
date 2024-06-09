@@ -2,6 +2,12 @@ const vscode = require('vscode');
 
 const LINE_LIMIT = 10000; // 10,000 lines
 
+const EXCLUDED_PATTERNS = [
+    '/.git/',
+    '.gitignore',
+    // Add other patterns as needed
+];
+
 function exceedsLineLimit(content) {
     return content.split('\n').length > LINE_LIMIT;
 }
@@ -14,11 +20,16 @@ function countLines(content) {
     return content.split('\n').length;
 }
 
+function shouldExcludeFile(fileName) {
+    return EXCLUDED_PATTERNS.some(pattern => fileName.includes(pattern));
+}
+
 async function getAllTabs() {
     const allTabs = [];
     vscode.window.tabGroups.all.forEach(group => {
         group.tabs.forEach(tab => {
             if (tab.input && tab.input.uri) {
+                console.log(`Tab loaded: ${tab.input.uri.fsPath}`);
                 allTabs.push(tab.input.uri);
             }
         });
@@ -28,7 +39,13 @@ async function getAllTabs() {
 
 async function getNotLoadedTabs(allTabs, loadedDocuments) {
     const loadedURIs = loadedDocuments.map(doc => doc.uri.toString());
-    return allTabs.filter(uri => !loadedURIs.includes(uri.toString()));
+    const notLoadedTabs = allTabs.filter(uri => !loadedURIs.includes(uri.toString()));
+
+    notLoadedTabs.forEach(uri => {
+        console.log(`Tab not loaded: ${uri.fsPath}`);
+    });
+
+    return notLoadedTabs;
 }
 
 async function processDocuments(documents, selectedFiles) {
@@ -38,8 +55,12 @@ async function processDocuments(documents, selectedFiles) {
     let totalLines = 0;
     let totalFiles = 0;
 
+    documents.forEach(document => {
+        console.log(`Processing document: ${document.fileName}`);
+    });
+
     for (const document of documents) {
-        if (selectedFiles.includes(document.fileName)) {
+        if (selectedFiles.includes(document.fileName) && !shouldExcludeFile(document.fileName)) {
             const fileContent = document.getText();
             if (!exceedsLineLimit(fileContent)) {
                 content += `\n----- ${document.fileName} -----\n\n${fileContent}\n`;
@@ -212,10 +233,12 @@ async function activate(context) {
                                 <div id="tooltip" class="tooltip">${notLoadedFiles}</div>`;
         }
 
-        let fileListHtml = openTextDocuments.map((doc, index) => {
-            return `<input type="checkbox" id="file${index}" name="file" value="${doc.fileName}" checked>
-                    <label for="file${index}">${doc.fileName}</label><br>`;
-        }).join('');
+        let fileListHtml = openTextDocuments
+            .filter(doc => !shouldExcludeFile(doc.fileName))
+            .map((doc, index) => {
+                return `<input type="checkbox" id="file${index}" name="file" value="${doc.fileName}" checked>
+                        <label for="file${index}">${doc.fileName}</label><br>`;
+            }).join('');
 
         panel.webview.html = getWebviewContent(notLoadedMessage, fileListHtml);
 
