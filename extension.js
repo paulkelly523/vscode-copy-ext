@@ -2,12 +2,6 @@ const vscode = require('vscode');
 
 const LINE_LIMIT = 10000; // 10,000 lines
 
-const EXCLUDED_PATTERNS = [
-    '/.git/',
-    '.gitignore',
-    // Add other patterns as needed
-];
-
 function exceedsLineLimit(content) {
     return content.split('\n').length > LINE_LIMIT;
 }
@@ -20,47 +14,17 @@ function countLines(content) {
     return content.split('\n').length;
 }
 
-function shouldExcludeFile(fileName) {
-    return EXCLUDED_PATTERNS.some(pattern => fileName.includes(pattern));
-}
-
-async function getAllTabs() {
-    const allTabs = [];
-    vscode.window.tabGroups.all.forEach(group => {
-        group.tabs.forEach(tab => {
-            if (tab.input && tab.input.uri) {
-                console.log(`Tab loaded: ${tab.input.uri.fsPath}`);
-                allTabs.push(tab.input.uri);
-            }
-        });
-    });
-    return allTabs;
-}
-
-async function getNotLoadedTabs(allTabs, loadedDocuments) {
-    const loadedURIs = loadedDocuments.map(doc => doc.uri.toString());
-    const notLoadedTabs = allTabs.filter(uri => !loadedURIs.includes(uri.toString()));
-
-    notLoadedTabs.forEach(uri => {
-        console.log(`Tab not loaded: ${uri.fsPath}`);
-    });
-
-    return notLoadedTabs;
-}
-
-async function processDocuments(documents, selectedFiles) {
+async function processDocuments(selectedFiles) {
     let content = '';
     let exceededFiles = [];
     let totalWords = 0;
     let totalLines = 0;
     let totalFiles = 0;
 
-    documents.forEach(document => {
-        console.log(`Processing document: ${document.fileName}`);
-    });
+    const openTextDocuments = vscode.window.visibleTextEditors.map(editor => editor.document);
 
-    for (const document of documents) {
-        if (selectedFiles.includes(document.fileName) && !shouldExcludeFile(document.fileName)) {
+    for (const document of openTextDocuments) {
+        if (selectedFiles.includes(document.fileName)) {
             const fileContent = document.getText();
             if (!exceedsLineLimit(fileContent)) {
                 content += `\n----- ${document.fileName} -----\n\n${fileContent}\n`;
@@ -77,7 +41,7 @@ async function processDocuments(documents, selectedFiles) {
     return { content, exceededFiles, totalWords, totalLines, totalFiles };
 }
 
-function getWebviewContent(notLoadedMessage, fileListHtml) {
+function getWebviewContent(fileListHtml) {
     return `<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -85,10 +49,6 @@ function getWebviewContent(notLoadedMessage, fileListHtml) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Select Files</title>
         <style>
-            .warning {
-                color: red;
-                font-weight: bold;
-            }
             .tooltip {
                 display: none;
                 background-color: #f9f9f9;
@@ -102,7 +62,6 @@ function getWebviewContent(notLoadedMessage, fileListHtml) {
     </head>
     <body>
         <h1>Select Files to Copy</h1>
-        ${notLoadedMessage}
         <form id="fileForm">
             ${fileListHtml}
             <br>
@@ -160,20 +119,6 @@ function getWebviewContent(notLoadedMessage, fileListHtml) {
                 }
             });
 
-            const filesLink = document.getElementById('filesLink');
-            const tooltip = document.getElementById('tooltip');
-
-            if (filesLink) {
-                filesLink.addEventListener('mouseover', () => {
-                    tooltip.style.display = 'block';
-                    tooltip.style.left = filesLink.getBoundingClientRect().left + 'px';
-                    tooltip.style.top = filesLink.getBoundingClientRect().bottom + 'px';
-                });
-                filesLink.addEventListener('mouseout', () => {
-                    tooltip.style.display = 'none';
-                });
-            }
-
             updateStats(); // Initial stats calculation
         </script>
     </body>
@@ -181,24 +126,13 @@ function getWebviewContent(notLoadedMessage, fileListHtml) {
 }
 
 async function handleCopyCommand(selectedFiles = null) {
-    const allTabs = await getAllTabs();
-    const openTextDocuments = vscode.workspace.textDocuments;
-    const notLoadedTabs = await getNotLoadedTabs(allTabs, openTextDocuments);
-
-    if (notLoadedTabs.length > 0) {
-        const notLoadedFiles = notLoadedTabs.map(uri => uri.fsPath).join('\n');
-        const message = notLoadedTabs.length === 1 ?
-            `There is 1 file in your VS Code window that is unable to be included because it has not yet been loaded into memory. To resolve this issue, click on the tab, and it should be loaded into memory at that point. Affected file:` :
-            `There are ${notLoadedTabs.length} files in your VS Code window that are unable to be included because they have not yet been loaded into memory. To resolve this issue, click on the tabs, and they should be loaded into memory at that point. Affected files:`;
-
-        vscode.window.showWarningMessage(`${message}\n${notLoadedFiles}`);
-    }
+    const openTextDocuments = vscode.window.visibleTextEditors.map(editor => editor.document);
 
     if (!selectedFiles) {
         selectedFiles = openTextDocuments.map(doc => doc.fileName);
     }
 
-    const { content, exceededFiles, totalWords, totalLines, totalFiles } = await processDocuments(openTextDocuments, selectedFiles);
+    const { content, exceededFiles, totalWords, totalLines, totalFiles } = await processDocuments(selectedFiles);
 
     await vscode.env.clipboard.writeText(content);
     vscode.window.showInformationMessage(`Copied ${totalWords} words, ${totalFiles} files, ${totalLines} lines to clipboard!`);
@@ -212,9 +146,7 @@ async function activate(context) {
     let copyAllCommand = vscode.commands.registerCommand('extension.copyAllOpenFiles', () => handleCopyCommand());
 
     let selectFilesCommand = vscode.commands.registerCommand('extension.selectFilesToCopy', async () => {
-        const allTabs = await getAllTabs();
-        const openTextDocuments = vscode.workspace.textDocuments;
-        const notLoadedTabs = await getNotLoadedTabs(allTabs, openTextDocuments);
+        const openTextDocuments = vscode.window.visibleTextEditors.map(editor => editor.document);
 
         const panel = vscode.window.createWebviewPanel(
             'selectFiles',
@@ -225,22 +157,13 @@ async function activate(context) {
             }
         );
 
-        let notLoadedMessage = '';
-        if (notLoadedTabs.length > 0) {
-            const notLoadedFiles = notLoadedTabs.map(uri => uri.fsPath).join('\n');
-            notLoadedMessage = `<p class="warning">There are ${notLoadedTabs.length} file(s) in your VS Code window that are unable to be included because they have not yet been loaded into memory. To resolve this issue, click on the tabs, and they should be loaded into memory at that point.</p>
-                                <p><a href="#" id="filesLink">Affected files</a></p>
-                                <div id="tooltip" class="tooltip">${notLoadedFiles}</div>`;
-        }
-
         let fileListHtml = openTextDocuments
-            .filter(doc => !shouldExcludeFile(doc.fileName))
             .map((doc, index) => {
                 return `<input type="checkbox" id="file${index}" name="file" value="${doc.fileName}" checked>
                         <label for="file${index}">${doc.fileName}</label><br>`;
             }).join('');
 
-        panel.webview.html = getWebviewContent(notLoadedMessage, fileListHtml);
+        panel.webview.html = getWebviewContent(fileListHtml);
 
         panel.webview.onDidReceiveMessage(async message => {
             if (message.command === 'copySelectedFiles') {
