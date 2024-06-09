@@ -1,0 +1,39 @@
+{
+    "name": "local-copy-extension",
+    "displayName": "Local Copy Extension",
+    "description": "Copies selected open files to clipboard with filenames",
+    "version": "0.0.1",
+    "publisher": "paulkelly-dev",
+    "engines": {
+        "vscode": "^1.50.0"
+    },
+    "activationEvents": [
+        "onCommand:extension.copyAllOpenFiles",
+        "onCommand:extension.selectFilesToCopy"
+    ],
+    "main": "./extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "extension.copyAllOpenFiles",
+                "title": "Copy All Open Files"
+            },
+            {
+                "command": "extension.selectFilesToCopy",
+                "title": "Select Files to Copy"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "extension.copyAllOpenFiles",
+                "key": "ctrl+shift+c",
+                "when": "editorTextFocus"
+            },
+            {
+                "command": "extension.selectFilesToCopy",
+                "key": "ctrl+shift+x",
+                "when": "editorTextFocus"
+            }
+        ]
+    }
+}
