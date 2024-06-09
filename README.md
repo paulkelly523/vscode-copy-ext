@@ -6,7 +6,7 @@ Local Copy Extension allows you to copy the contents of all open files in Visual
 
 ## Purpose
 
-I (ok, it was mostly ChatGPT, but I came up with the idea) created this extension to save time when copying a group of files to paste into ChatGPT for my coding work. Manually copying each file's content was tedious, so this extension automates the process of copying a group of open files in Visual Studio Code.
+I created this extension to save time when copying a group of files to paste into ChatGPT for my coding work. Manually copying each file's content was tedious, so this extension automates the process of copying a group of open files in Visual Studio Code.
 
 ## Features
 
@@ -16,14 +16,12 @@ I (ok, it was mostly ChatGPT, but I came up with the idea) created this extensio
 
 ## Usage
 
-1. Open multiple files in Visual Studio Code.
+1. Open multiple files in Visual Studio Code and make sure they are visible in the editor.
 2. Press `Ctrl+Shift+C` (default keybinding) to copy the contents of all open files to the clipboard.
-3. Alternatively, use the command palette (`Ctrl+Shift+P`) and search for `Local Copy: Copy All Open Files` to perform the same action.
-4. To select specific files to copy, use the command palette and search for `Local Copy: Select Files to Copy`. A window will open allowing you to select the files.
 
 ## Known Issues
 
-1. A file can show as being a tabbed file in the workspace, but the file will not be loaded into memory. This extension will not copy the content of files that are not loaded into memory. To ensure that a file is loaded into memory, click on the file tab to open the file.
+1. Only visible files in the editor are copied. If you have files open but not visible in the editor, their content will not be copied.
 
 ## Example Output
 
