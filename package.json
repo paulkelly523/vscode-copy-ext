@@ -3,7 +3,7 @@
     "displayName": "Local Copy Extension",
     "description": "Copies selected open files to clipboard with filenames",
     "version": "0.0.1",
-    "publisher": "paulkelly-dev",
+    "publisher": "paulkelly",
     "engines": {
         "vscode": "^1.50.0"
     },
