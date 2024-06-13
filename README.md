@@ -12,7 +12,6 @@ I created this extension to save time when copying a group of files to paste int
 
 - Copy the contents of all open files to the clipboard (shortcut: `Ctrl+Shift+C`)
 - Includes absolute filenames in the copied content
-- Option to select specific files to copy from the open files (shortcut: `Ctrl+Shift+X`)
 
 ## Usage
 

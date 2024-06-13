@@ -21,21 +21,12 @@
             {
                 "command": "extension.copyAllOpenFiles",
                 "title": "Copy All Open Files"
-            },
-            {
-                "command": "extension.selectFilesToCopy",
-                "title": "Select Files to Copy"
             }
         ],
         "keybindings": [
             {
                 "command": "extension.copyAllOpenFiles",
                 "key": "ctrl+shift+c",
-                "when": "editorTextFocus"
-            },
-            {
-                "command": "extension.selectFilesToCopy",
-                "key": "ctrl+shift+x",
                 "when": "editorTextFocus"
             }
         ]
